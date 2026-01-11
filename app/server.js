@@ -1,26 +1,31 @@
 /**
- * SERVER.JS - DOMPETKU FULL LOGIC
+ * SERVER.JS - DOMPETKU (FINAL VERSION)
+ * Port: 1912
+ * Flow: Login -> Dashboard
  */
+
 const express = require('express');
 const path = require('path');
 const expressLayouts = require('express-ejs-layouts');
 const session = require('express-session');
 const multer = require('multer');
 const app = express();
-const port = 1912;
 
-// --- 1. CONFIG SESSION (TIKET MASUK) ---
+// --- 1. SETTING PORT JADI 1912 ---
+const port = 1912; 
+
+// --- 2. CONFIG SESSION ---
 app.use(session({
-    secret: 'rahasia-dapur-dompetku',
+    secret: 'rahasia-super-aman',
     resave: false,
     saveUninitialized: false,
     cookie: { maxAge: 1000 * 60 * 60 * 24 } // 24 Jam
 }));
 
-// --- 2. CONFIG UPLOAD (MULTER) ---
+// --- 3. CONFIG UPLOAD ---
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'public/uploads'); // File masuk ke folder public/uploads
+        cb(null, 'public/uploads');
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -29,31 +34,31 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-// --- 3. CONFIG VIEW ENGINE ---
+// --- 4. CONFIG VIEW ENGINE ---
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(expressLayouts);
-app.set('layout', 'layout/main'); // Default layout
+app.set('layout', 'layout/main'); 
 
-// --- 4. DATA DUMMY ---
+// --- DATA DUMMY ---
 let dummyTransaksi = [
-    { id: 1, tanggal: '2026-01-10', keterangan: 'Saldo Awal', jenis: 'Pemasukan', nominal: 5000000, foto: null }
+    { id: 1, tanggal: '2026-01-12', keterangan: 'Saldo Awal', jenis: 'Pemasukan', nominal: 5000000, foto: null }
 ];
 
-// --- 5. MIDDLEWARE SATPAM (CEK LOGIN) ---
+// --- 5. MIDDLEWARE CEK LOGIN ---
 const cekLogin = (req, res, next) => {
     if (req.session.user) {
-        next(); // Boleh lewat
+        next(); 
     } else {
-        res.redirect('/auth/login'); // Tendang ke login
+        res.redirect('/auth/login'); // Kalau belum login, lempar ke sini
     }
 };
 
 // ================= ROUTES =================
 
-// --- DASHBOARD (DIPROTEKSI) ---
+// --- DASHBOARD (DIPAGARI CEK LOGIN) ---
 app.get('/', cekLogin, (req, res) => {
     const totalPemasukan = dummyTransaksi.filter(t => t.jenis === 'Pemasukan').reduce((a, b) => a + b.nominal, 0);
     const totalPengeluaran = dummyTransaksi.filter(t => t.jenis === 'Pengeluaran').reduce((a, b) => a + b.nominal, 0);
@@ -67,38 +72,40 @@ app.get('/', cekLogin, (req, res) => {
     });
 });
 
-// --- AUTH (LOGIN) ---
+// --- HALAMAN LOGIN ---
 app.get('/auth/login', (req, res) => {
     if (req.session.user) return res.redirect('/');
+    // PENTING: layout: false agar CSS Tailwind di file login.ejs tereksekusi
     res.render('auth/login', { layout: false, title: 'Login' });
 });
 
+// --- PROSES LOGIN ---
 app.post('/auth/login', (req, res) => {
     const { identifier, password } = req.body;
-    if (password === '123') { // Hardcode Password
+    if (password === '123') { 
         req.session.user = { username: identifier };
-        res.redirect('/');
+        res.redirect('/'); 
     } else {
-        res.redirect('/auth/login');
+        res.redirect('/auth/login'); 
     }
 });
 
+// --- LOGOUT ---
 app.post('/auth/logout', (req, res) => {
     req.session.destroy();
     res.redirect('/auth/login');
 });
 
-// --- AUTH (REGISTER - TAMPILAN SAJA) ---
+// --- REGISTER ---
 app.get('/auth/register', (req, res) => {
     res.render('auth/register', { layout: false, title: 'Daftar' });
 });
 
-// --- TRANSAKSI (CRUD) ---
+// --- TRANSAKSI ---
 app.get('/transaksi/tambah', cekLogin, (req, res) => {
     res.render('transaksi/form', { title: 'Tambah', isEdit: false, data: {} });
 });
 
-// SIMPAN (+ UPLOAD FOTO)
 app.post('/transaksi/simpan', cekLogin, upload.single('bukti_foto'), (req, res) => {
     const newId = Date.now();
     const foto = req.file ? req.file.filename : null;
@@ -114,7 +121,6 @@ app.post('/transaksi/simpan', cekLogin, upload.single('bukti_foto'), (req, res) 
     res.redirect('/');
 });
 
-// EDIT (Halaman)
 app.get('/transaksi/edit/:id', cekLogin, (req, res) => {
     const id = parseInt(req.params.id);
     const data = dummyTransaksi.find(t => t.id == id);
@@ -122,7 +128,6 @@ app.get('/transaksi/edit/:id', cekLogin, (req, res) => {
     else res.redirect('/');
 });
 
-// DELETE
 app.post('/transaksi/delete/:id', cekLogin, (req, res) => {
     const id = parseInt(req.params.id);
     dummyTransaksi = dummyTransaksi.filter(t => t.id != id);
