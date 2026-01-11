@@ -1,7 +1,5 @@
 /**
- * SERVER.JS - VERSI FULL DUMMY (TANPA DATABASE)
- * Port: 1912
- * Fitur: Login, Register, Upload Foto, CRUD Transaksi
+ * SERVER.JS - FINAL FIX (Update Logic & Flow)
  */
 
 const express = require('express');
@@ -10,109 +8,79 @@ const expressLayouts = require('express-ejs-layouts');
 const session = require('express-session');
 const multer = require('multer');
 const app = express();
-
-// =========================================
-// 1. SETTING PORT (HARUS 1912)
-// =========================================
 const port = 1912; 
 
-// =========================================
-// 2. CONFIG SESSION (TIKET MASUK)
-// =========================================
+// --- CONFIG ---
 app.use(session({
-    secret: 'rahasia-dapur-dompetku', // Bebas
+    secret: 'rahasia-negara',
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 1000 * 60 * 60 * 24 } // 24 Jam
+    cookie: { maxAge: 1000 * 60 * 60 * 24 } // 1 Hari
 }));
 
-// =========================================
-// 3. CONFIG UPLOAD (MULTER)
-// =========================================
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        // File akan masuk ke folder public/uploads
-        cb(null, 'public/uploads'); 
-    },
-    filename: (req, file, cb) => {
-        // Nama file unik: timestamp-namaasli.jpg
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + '-' + file.originalname);
-    }
+const upload = multer({ 
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => cb(null, 'public/uploads'),
+        filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+    })
 });
-const upload = multer({ storage: storage });
 
-// =========================================
-// 4. CONFIG VIEW ENGINE (TAMPILAN)
-// =========================================
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-app.use(express.static(path.join(__dirname, 'public'))); // Buka folder public
-app.use(express.urlencoded({ extended: true })); // Baca data form
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(expressLayouts);
-app.set('layout', 'layout/main'); // Layout default
+app.set('layout', 'layout/main'); 
+app.use(express.urlencoded({ extended: true }));
 
-// =========================================
-// 5. DATA DUMMY (PENGGANTI DATABASE)
-// =========================================
-// Data ini akan reset kalau server dimatikan.
+// --- DATA DUMMY ---
 let dummyTransaksi = [
-    { 
-        id: 1, 
-        tanggal: '2026-01-12', 
-        keterangan: 'Saldo Awal (Dummy)', 
-        jenis: 'Pemasukan', 
-        nominal: 5000000, 
-        foto: null 
-    }
+    { id: 1, tanggal: '2026-01-12', keterangan: 'Saldo Awal', jenis: 'Pemasukan', nominal: 5000000, foto: null }
 ];
 
-// =========================================
-// 6. MIDDLEWARE SATPAM (CEK LOGIN)
-// =========================================
+// --- MIDDLEWARE CEK LOGIN ---
 const cekLogin = (req, res, next) => {
     if (req.session.user) {
-        next(); // Boleh lewat
+        next(); 
     } else {
-        res.redirect('/auth/login'); // Tendang ke login
+        // Kalau belum login, paksa ke halaman login
+        res.redirect('/auth/login'); 
     }
 };
 
-// =========================================
-// 7. ROUTES (ALUR APLIKASI)
-// =========================================
+// ================= ROUTING =================
 
-// --- HALAMAN LOGIN ---
+// 1. LOGIN (HARUS PALING AWAL DIAKSES)
 app.get('/auth/login', (req, res) => {
+    // Kalau user SUDAH login, jangan kasih masuk sini, lempar ke dashboard
     if (req.session.user) return res.redirect('/');
-    // Layout: false (PENTING) biar CSS Login jalan full screen
+    
+    // Tampilkan Login TANPA Navbar (layout: false)
     res.render('auth/login', { layout: false, title: 'Login' });
 });
 
-// --- PROSES LOGIN ---
 app.post('/auth/login', (req, res) => {
     const { identifier, password } = req.body;
-    
-    // Validasi Sederhana
     if (password === '123') { 
-        req.session.user = { username: identifier }; // Buat sesi
-        res.redirect('/'); 
+        req.session.user = { username: identifier };
+        res.redirect('/'); // Sukses -> Ke Dashboard
     } else {
         res.redirect('/auth/login'); 
     }
 });
 
+app.post('/auth/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/auth/login');
+});
 
-// --- DASHBOARD (DIPAGARI CEK LOGIN) ---
+app.get('/auth/register', (req, res) => {
+    res.render('auth/register', { layout: false, title: 'Daftar' });
+});
+
+// 2. DASHBOARD (CekLogin aktif disini)
 app.get('/', cekLogin, (req, res) => {
-    // Hitung total manual dari array dummy
-    const totalPemasukan = dummyTransaksi
-        .filter(t => t.jenis === 'Pemasukan')
-        .reduce((a, b) => a + b.nominal, 0);
-        
-    const totalPengeluaran = dummyTransaksi
-        .filter(t => t.jenis === 'Pengeluaran')
-        .reduce((a, b) => a + b.nominal, 0);
+    const totalPemasukan = dummyTransaksi.filter(t => t.jenis === 'Pemasukan').reduce((a, b) => a + b.nominal, 0);
+    const totalPengeluaran = dummyTransaksi.filter(t => t.jenis === 'Pengeluaran').reduce((a, b) => a + b.nominal, 0);
 
     res.render('index', { 
         title: 'Dashboard',
@@ -123,30 +91,17 @@ app.get('/', cekLogin, (req, res) => {
     });
 });
 
+// 3. TRANSAKSI (CRUD)
 
-
-// --- LOGOUT ---
-app.post('/auth/logout', (req, res) => {
-    req.session.destroy();
-    res.redirect('/auth/login');
-});
-
-// --- REGISTER (TAMPILAN SAJA) ---
-app.get('/auth/register', (req, res) => {
-    res.render('auth/register', { layout: false, title: 'Daftar' });
-});
-
-// --- FORM TAMBAH TRANSAKSI ---
+// Halaman Tambah
 app.get('/transaksi/tambah', cekLogin, (req, res) => {
     res.render('transaksi/form', { title: 'Tambah', isEdit: false, data: {} });
 });
 
-// --- PROSES SIMPAN (CREATE) ---
+// PROSES SIMPAN (BARU)
 app.post('/transaksi/simpan', cekLogin, upload.single('bukti_foto'), (req, res) => {
-    const newId = Date.now(); // ID Unik pakai waktu sekarang
+    const newId = Date.now();
     const foto = req.file ? req.file.filename : null;
-
-    // Masukkan ke Array Dummy
     dummyTransaksi.push({
         id: newId,
         tanggal: req.body.tanggal,
@@ -155,37 +110,46 @@ app.post('/transaksi/simpan', cekLogin, upload.single('bukti_foto'), (req, res) 
         nominal: parseInt(req.body.nominal),
         foto: foto
     });
-    
     res.redirect('/');
 });
 
-// --- HALAMAN EDIT ---
+// Halaman Edit
 app.get('/transaksi/edit/:id', cekLogin, (req, res) => {
     const id = parseInt(req.params.id);
     const data = dummyTransaksi.find(t => t.id == id);
-    
-    if(data) {
-        res.render('transaksi/form', { title: 'Edit', isEdit: true, data: data });
-    } else {
-        res.redirect('/');
-    }
+    if(data) res.render('transaksi/form', { title: 'Edit', isEdit: true, data: data });
+    else res.redirect('/');
 });
 
-// --- PROSES UPDATE (AKAL-AKALAN DUMMY) ---
-// Catatan: Di dummy ini, kita hapus dulu yang lama, baru simpan yang baru (simpel)
-// Kalau pakai DB beneran, harus pakai UPDATE query.
+// PROSES UPDATE (PERBAIKAN LOGIKA DISINI!)
+app.post('/transaksi/update/:id', cekLogin, upload.single('bukti_foto'), (req, res) => {
+    const id = parseInt(req.params.id);
+    const newFoto = req.file ? req.file.filename : null;
 
-// --- PROSES HAPUS ---
+    // 1. Cari Index data yang mau diedit
+    const index = dummyTransaksi.findIndex(t => t.id === id);
+
+    if (index !== -1) {
+        // 2. Update datanya (Timpah data lama)
+        dummyTransaksi[index].tanggal = req.body.tanggal;
+        dummyTransaksi[index].jenis = req.body.jenis;
+        dummyTransaksi[index].nominal = parseInt(req.body.nominal);
+        dummyTransaksi[index].keterangan = req.body.keterangan;
+        
+        // 3. Cek Foto: Kalau user upload baru, ganti. Kalau gak, pakai yang lama.
+        if (newFoto) {
+            dummyTransaksi[index].foto = newFoto;
+        }
+    }
+    res.redirect('/');
+});
+
 app.post('/transaksi/delete/:id', cekLogin, (req, res) => {
     const id = parseInt(req.params.id);
-    // Filter array: Ambil semua item KECUALI yang id-nya mau dihapus
     dummyTransaksi = dummyTransaksi.filter(t => t.id != id);
     res.redirect('/');
 });
 
-// =========================================
-// 8. JALANKAN SERVER
-// =========================================
 app.listen(port, () => {
-    console.log(`✅ Server DompetKu (DUMMY MODE) jalan di http://localhost:${port}`);
+    console.log(`✅ Server Berjalan di: http://localhost:${port}`);
 });
