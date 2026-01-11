@@ -1,0 +1,61 @@
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500 card-hover">
+        <p class="text-sm text-gray-500 uppercase font-bold">Total Pemasukan</p>
+        <h2 class="text-2xl font-bold text-gray-800">Rp <%= totalPemasukan.toLocaleString('id-ID') %></h2>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-red-500 card-hover">
+        <p class="text-sm text-gray-500 uppercase font-bold">Total Pengeluaran</p>
+        <h2 class="text-2xl font-bold text-gray-800">Rp <%= totalPengeluaran.toLocaleString('id-ID') %></h2>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500 card-hover">
+        <p class="text-sm text-gray-500 uppercase font-bold">Saldo Akhir</p>
+        <h2 class="text-2xl font-bold text-gray-800">Rp <%= (totalPemasukan - totalPengeluaran).toLocaleString('id-ID') %></h2>
+    </div>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+    <div class="p-5 border-b flex justify-between items-center">
+        <h3 class="font-bold text-lg text-gray-700">Riwayat Transaksi</h3>
+    </div>
+    
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead class="bg-gray-50 text-gray-600 uppercase text-xs tracking-wider">
+                <tr>
+                    <th class="p-4">Tanggal</th>
+                    <th class="p-4">Keterangan</th>
+                    <th class="p-4">Jenis</th>
+                    <th class="p-4 text-right">Nominal</th>
+                    <th class="p-4 text-center">Aksi</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                <% if(transaksi.length === 0) { %>
+                    <tr>
+                        <td colspan="5" class="p-8 text-center text-gray-400">Belum ada data transaksi</td>
+                    </tr>
+                <% } %>
+                <% transaksi.forEach(item => { %>
+                <tr class="hover:bg-blue-50 transition duration-150">
+                    <td class="p-4 text-sm text-gray-600"><%= item.tanggal %></td>
+                    <td class="p-4 font-medium text-gray-800"><%= item.keterangan %></td>
+                    <td class="p-4">
+                        <span class="px-2 py-1 rounded-full text-xs font-bold <%= item.jenis === 'Pemasukan' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' %>">
+                            <%= item.jenis %>
+                        </span>
+                    </td>
+                    <td class="p-4 text-right font-mono font-bold text-gray-700">
+                        Rp <%= item.nominal.toLocaleString('id-ID') %>
+                    </td>
+                    <td class="p-4 text-center space-x-2">
+                        <a href="/transaksi/edit/<%= item.id %>" class="text-blue-600 hover:text-blue-800 text-sm font-semibold">Edit</a>
+                        <form action="/transaksi/delete/<%= item.id %>" method="POST" class="inline" onsubmit="return confirm('Hapus transaksi ini?')">
+                            <button class="text-red-600 hover:text-red-800 text-sm font-semibold">Hapus</button>
+                        </form>
+                    </td>
+                </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
+</div>

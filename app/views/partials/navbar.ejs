@@ -1,0 +1,14 @@
+<nav class="bg-blue-600 p-4 text-white shadow-md sticky top-0 z-50">
+    <div class="container mx-auto flex justify-between items-center">
+        <a href="/" class="text-2xl font-bold tracking-tight">DompetKu</a>
+        <div class="flex items-center space-x-4">
+            <a href="/" class="hover:text-blue-200 transition">Dashboard</a>
+            <a href="/transaksi/tambah" class="bg-white text-blue-600 px-4 py-2 rounded-lg font-bold text-sm hover:bg-blue-50 transition shadow-sm">
+                + Tambah
+            </a>
+            <form action="/auth/login" method="GET" class="inline">
+                <button class="text-red-200 hover:text-white text-sm ml-2">Logout</button>
+            </form>
+        </div>
+    </div>
+</nav>
