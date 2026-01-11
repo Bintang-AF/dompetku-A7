@@ -1,7 +1,6 @@
 /**
- * SERVER.JS - DOMPETKU (FINAL VERSION)
+ * SERVER.JS - DOMPETKU (FINAL FIX)
  * Port: 1912
- * Flow: Login -> Dashboard
  */
 
 const express = require('express');
@@ -11,20 +10,21 @@ const session = require('express-session');
 const multer = require('multer');
 const app = express();
 
-// --- 1. SETTING PORT JADI 1912 ---
+// --- 1. SETTING PORT ---
 const port = 1912; 
 
 // --- 2. CONFIG SESSION ---
 app.use(session({
-    secret: 'rahasia-super-aman',
+    secret: 'rahasia-super-aman', // Bisa diganti bebas
     resave: false,
     saveUninitialized: false,
     cookie: { maxAge: 1000 * 60 * 60 * 24 } // 24 Jam
 }));
 
-// --- 3. CONFIG UPLOAD ---
+// --- 3. CONFIG UPLOAD (MULTER) ---
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
+        // Pastikan folder 'public/uploads' sudah dibuat!
         cb(null, 'public/uploads');
     },
     filename: (req, file, cb) => {
@@ -40,9 +40,9 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(expressLayouts);
-app.set('layout', 'layout/main'); 
+app.set('layout', 'layout/main'); // Layout default untuk Dashboard
 
-// --- DATA DUMMY ---
+// --- DATA DUMMY (ARRAY SEMENTARA) ---
 let dummyTransaksi = [
     { id: 1, tanggal: '2026-01-12', keterangan: 'Saldo Awal', jenis: 'Pemasukan', nominal: 5000000, foto: null }
 ];
@@ -50,16 +50,17 @@ let dummyTransaksi = [
 // --- 5. MIDDLEWARE CEK LOGIN ---
 const cekLogin = (req, res, next) => {
     if (req.session.user) {
-        next(); 
+        next(); // Boleh lewat
     } else {
-        res.redirect('/auth/login'); // Kalau belum login, lempar ke sini
+        res.redirect('/auth/login'); // Belum login? Tendang ke halaman login
     }
 };
 
 // ================= ROUTES =================
 
-// --- DASHBOARD (DIPAGARI CEK LOGIN) ---
+// --- DASHBOARD (DIPAGARI) ---
 app.get('/', cekLogin, (req, res) => {
+    // Hitung total saldo
     const totalPemasukan = dummyTransaksi.filter(t => t.jenis === 'Pemasukan').reduce((a, b) => a + b.nominal, 0);
     const totalPengeluaran = dummyTransaksi.filter(t => t.jenis === 'Pengeluaran').reduce((a, b) => a + b.nominal, 0);
 
@@ -72,16 +73,16 @@ app.get('/', cekLogin, (req, res) => {
     });
 });
 
-// --- HALAMAN LOGIN ---
+// --- LOGIN ROUTE ---
 app.get('/auth/login', (req, res) => {
     if (req.session.user) return res.redirect('/');
-    // PENTING: layout: false agar CSS Tailwind di file login.ejs tereksekusi
+    // layout: false -> Agar tidak menimpa style bawaan login.ejs
     res.render('auth/login', { layout: false, title: 'Login' });
 });
 
-// --- PROSES LOGIN ---
 app.post('/auth/login', (req, res) => {
     const { identifier, password } = req.body;
+    // Password Hardcode: 123
     if (password === '123') { 
         req.session.user = { username: identifier };
         res.redirect('/'); 
@@ -101,11 +102,12 @@ app.get('/auth/register', (req, res) => {
     res.render('auth/register', { layout: false, title: 'Daftar' });
 });
 
-// --- TRANSAKSI ---
+// --- TRANSAKSI ROUTES ---
 app.get('/transaksi/tambah', cekLogin, (req, res) => {
     res.render('transaksi/form', { title: 'Tambah', isEdit: false, data: {} });
 });
 
+// Simpan Data (+ Upload)
 app.post('/transaksi/simpan', cekLogin, upload.single('bukti_foto'), (req, res) => {
     const newId = Date.now();
     const foto = req.file ? req.file.filename : null;
@@ -121,6 +123,7 @@ app.post('/transaksi/simpan', cekLogin, upload.single('bukti_foto'), (req, res) 
     res.redirect('/');
 });
 
+// Edit Data
 app.get('/transaksi/edit/:id', cekLogin, (req, res) => {
     const id = parseInt(req.params.id);
     const data = dummyTransaksi.find(t => t.id == id);
@@ -128,12 +131,14 @@ app.get('/transaksi/edit/:id', cekLogin, (req, res) => {
     else res.redirect('/');
 });
 
+// Hapus Data
 app.post('/transaksi/delete/:id', cekLogin, (req, res) => {
     const id = parseInt(req.params.id);
     dummyTransaksi = dummyTransaksi.filter(t => t.id != id);
     res.redirect('/');
 });
 
+// --- JALANKAN SERVER ---
 app.listen(port, () => {
-    console.log(`Server DompetKu jalan di http://localhost:${port}`);
+    console.log(`✅ Server DompetKu jalan di http://localhost:${port}`);
 });
