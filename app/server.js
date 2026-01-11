@@ -1,105 +1,96 @@
 const express = require('express');
 const path = require('path');
-const expressLayouts = require('express-ejs-layouts'); // Tambahan Library
+const expressLayouts = require('express-ejs-layouts');
+const session = require('express-session'); // 1. Import Session
 const app = express();
-const port = 1912;
+const port = 1912; // Atau sesuaikan port kamu
 
-// 1. Setup View Engine & Static Files
+// Setup Session
+app.use(session({
+    secret: 'rahasia-negara-api', // Kunci acak (bebas)
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 1000 * 60 * 60 * 24 } // Sesi aktif 1 hari
+}));
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
-
-// 2. Setup Layouts (Agar Navbar otomatis muncul)
 app.use(expressLayouts);
-app.set('layout', 'layout/main'); // Mengarah ke views/layout/main.ejs
+app.set('layout', 'layout/main');
 
-// --- DATA DUMMY (Sementara pengganti Database) ---
+// --- DATA DUMMY ---
 let dummyTransaksi = [
     { id: 1, tanggal: '2026-01-10', keterangan: 'Gaji Januari', jenis: 'Pemasukan', nominal: 5000000 },
-    { id: 2, tanggal: '2026-01-11', keterangan: 'Bayar Kost', jenis: 'Pengeluaran', nominal: 1000000 }
 ];
+
+// --- MIDDLEWARE (SATPAM) ---
+// Fungsi ini akan mengecek: Punya tiket login gak? Kalau gak, tendang ke login.
+const cekLogin = (req, res, next) => {
+    if (req.session.user) {
+        next(); // Boleh lanjut
+    } else {
+        res.redirect('/auth/login'); // Ditolak, suruh login dulu
+    }
+};
 
 // --- ROUTES ---
 
-// Halaman Dashboard
-app.get('/', (req, res) => {
-    const totalPemasukan = dummyTransaksi
-        .filter(t => t.jenis === 'Pemasukan')
-        .reduce((a, b) => a + b.nominal, 0);
-        
-    const totalPengeluaran = dummyTransaksi
-        .filter(t => t.jenis === 'Pengeluaran')
-        .reduce((a, b) => a + b.nominal, 0);
+// 1. Dashboard (Sekarang dilindungi oleh 'cekLogin')
+app.get('/', cekLogin, (req, res) => {
+    const totalPemasukan = dummyTransaksi.filter(t => t.jenis === 'Pemasukan').reduce((a, b) => a + b.nominal, 0);
+    const totalPengeluaran = dummyTransaksi.filter(t => t.jenis === 'Pengeluaran').reduce((a, b) => a + b.nominal, 0);
 
     res.render('index', { 
         title: 'Dashboard',
         transaksi: dummyTransaksi, 
         totalPemasukan, 
-        totalPengeluaran 
+        totalPengeluaran,
+        user: req.session.user // Kirim data user ke view
     });
 });
 
-// Halaman Login (Tanpa Navbar/Layout Utama)
+// 2. Halaman Login
 app.get('/auth/login', (req, res) => {
+    // Kalau sudah login, jangan kasih masuk halaman login lagi, langsung ke dashboard
+    if (req.session.user) return res.redirect('/');
     res.render('auth/login', { layout: false, title: 'Login' });
 });
 
+// 3. Proses Login (POST)
 app.post('/auth/login', (req, res) => {
-    // Logika login dummy
-    res.redirect('/');
-});
-
-// Halaman Register (Tanpa Navbar/Layout Utama)
-app.get('/auth/register', (req, res) => {
-    res.render('auth/register', { layout: false, title: 'Daftar Akun' });
-});
-
-// Halaman Tambah Transaksi
-app.get('/transaksi/tambah', (req, res) => {
-    res.render('transaksi/form', { 
-        title: 'Tambah Transaksi',
-        isEdit: false, 
-        data: {} 
-    });
-});
-
-// Simpan Transaksi (Dummy Push)
-app.post('/transaksi/simpan', (req, res) => {
-    const newId = dummyTransaksi.length + 1;
-    dummyTransaksi.push({
-        id: newId,
-        tanggal: req.body.tanggal,
-        keterangan: req.body.keterangan,
-        jenis: req.body.jenis,
-        nominal: parseInt(req.body.nominal)
-    });
-    res.redirect('/');
-});
-
-// Halaman Edit
-app.get('/transaksi/edit/:id', (req, res) => {
-    const id = parseInt(req.params.id);
-    const data = dummyTransaksi.find(t => t.id === id);
-    if(data) {
-        res.render('transaksi/form', { 
-            title: 'Edit Transaksi',
-            isEdit: true, 
-            data: data 
-        });
+    const { identifier, password } = req.body;
+    
+    // Logika Login Sederhana (Hardcode dulu untuk belajar)
+    if (password === '123') { // Passwordnya '123'
+        // Buat Sesi (Tiket)
+        req.session.user = { username: identifier };
+        res.redirect('/'); // Berhasil, kirim ke dashboard
     } else {
-        res.redirect('/');
+        res.redirect('/auth/login?error=true'); // Gagal
     }
 });
 
-// Hapus Transaksi
-app.post('/transaksi/delete/:id', (req, res) => {
-    const id = parseInt(req.params.id);
-    dummyTransaksi = dummyTransaksi.filter(t => t.id !== id);
-    res.redirect('/');
+// 4. Logout
+app.post('/auth/logout', (req, res) => {
+    req.session.destroy((err) => {
+        if(err) return console.log(err);
+        res.redirect('/auth/login');
+    });
 });
 
-// Jalankan Server
+// 5. Register
+app.get('/auth/register', (req, res) => {
+    res.render('auth/register', { layout: false, title: 'Daftar' });
+});
+
+// Route Transaksi (Tambahkan cekLogin juga biar aman)
+app.get('/transaksi/tambah', cekLogin, (req, res) => {
+    res.render('transaksi/form', { title: 'Tambah', isEdit: false, data: {} });
+});
+// ... route simpan/hapus lainnya ...
+
 app.listen(port, () => {
-    console.log(`DompetKu berjalan di http://localhost:${port}`);
+    console.log(`Server jalan di http://localhost:${port}`);
 });
