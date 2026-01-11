@@ -3,20 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DompetKu - <%= typeof title != 'undefined' ? title : 'Keuangan' %></title>
+    <title>DompetKu - <%= typeof title != 'undefined' ? title : 'App' %></title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/css/style.css">
 </head>
 <body class="bg-gray-50 font-sans min-h-screen flex flex-col">
-    
     <%- include('../partials/navbar') %>
-
     <main class="container mx-auto mt-8 px-4 flex-grow mb-10">
         <%- body %>
     </main>
-
-    <footer class="bg-white text-center py-4 text-gray-400 text-sm mt-auto border-t">
-        &copy; 2026 DompetKu App
-    </footer>
+    <%- include('../partials/footer') %>
 </body>
 </html>
