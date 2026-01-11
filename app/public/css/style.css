@@ -1,0 +1,50 @@
+/* 1. Global Setting: Agar scroll antar halaman terasa halus */
+html {
+    scroll-behavior: smooth;
+}
+
+/* 2. Font Smoothing: Agar teks terlihat lebih tajam di monitor/HP */
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* 3. Custom Scrollbar (Code kamu sudah bagus, saya rapikan sedikit) */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px; /* Tambahan untuk scroll horizontal */
+}
+::-webkit-scrollbar-track {
+    background: #f1f5f9; /* Warna gray-100 biar nyatu sama background */
+}
+::-webkit-scrollbar-thumb {
+    background: #94a3b8; /* Warna gray-400 (lebih soft) */
+    border-radius: 10px;
+    border: 2px solid #f1f5f9; /* Memberi jarak antara thumb dan track */
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #3b82f6; /* Warna biru saat di-hover */
+}
+
+/* 4. Animasi Kartu (Code kamu sudah benar) */
+.card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-hover:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* 5. Perbaikan Tabel Responsif (PENTING BUAT HP) */
+/* Class ini memastikan tabel bisa discroll dan teks tidak berantakan */
+.table-responsive {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* Biar smooth di iPhone */
+}
+
+/* Mencegah teks tabel turun baris (wrapping) agar tetap rapi */
+.table-responsive table {
+    white-space: nowrap; 
+}
