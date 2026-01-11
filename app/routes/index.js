@@ -25,13 +25,11 @@ const cekLogin = (req, res, next) => {
 
 // --- 1. AUTH (LOGIN & REGISTER) ---
 
-// Halaman Login
 router.get('/auth/login', (req, res) => {
     if (req.session.user) return res.redirect('/');
     res.render('auth/login', { layout: false, title: 'Login' });
 });
 
-// Proses Login
 router.post('/auth/login', (req, res) => {
     const { identifier, password } = req.body;
     if (password === '123') { 
@@ -42,21 +40,16 @@ router.post('/auth/login', (req, res) => {
     }
 });
 
-// Proses Logout
 router.post('/auth/logout', (req, res) => {
     req.session.destroy();
     res.redirect('/auth/login');
 });
 
-// Halaman Register
 router.get('/auth/register', (req, res) => {
     res.render('auth/register', { layout: false, title: 'Daftar' });
 });
 
-// PERBAIKAN: Proses Register (Menangani Error 'Cannot POST')
 router.post('/auth/register', (req, res) => {
-    // Karena ini dummy, kita pura-pura sukses lalu lempar ke login
-    // Nanti disini tempat kodingan INSERT ke Database User
     console.log("User baru mendaftar:", req.body);
     res.redirect('/auth/login'); 
 });
@@ -79,12 +72,10 @@ router.get('/', cekLogin, (req, res) => {
 
 // --- 3. TRANSAKSI (CRUD) ---
 
-// Halaman Form Tambah
 router.get('/transaksi/tambah', cekLogin, (req, res) => {
     res.render('transaksi/form', { title: 'Tambah', isEdit: false, data: {} });
 });
 
-// Proses Simpan (Tambah Baru)
 router.post('/transaksi/simpan', cekLogin, upload.single('bukti_foto'), (req, res) => {
     const newId = Date.now();
     const foto = req.file ? req.file.filename : null;
@@ -100,7 +91,6 @@ router.post('/transaksi/simpan', cekLogin, upload.single('bukti_foto'), (req, re
     res.redirect('/');
 });
 
-// Halaman Form Edit
 router.get('/transaksi/edit/:id', cekLogin, (req, res) => {
     const id = parseInt(req.params.id);
     const data = dummyTransaksi.find(t => t.id == id);
@@ -108,22 +98,18 @@ router.get('/transaksi/edit/:id', cekLogin, (req, res) => {
     else res.redirect('/');
 });
 
-// PERBAIKAN: Proses Update (Ganti Data Lama)
 router.post('/transaksi/update/:id', cekLogin, upload.single('bukti_foto'), (req, res) => {
     const id = parseInt(req.params.id);
     const newFoto = req.file ? req.file.filename : null;
     
-    // Cari posisi data di array
     const index = dummyTransaksi.findIndex(t => t.id === id);
 
     if (index !== -1) {
-        // Update data yang ada
         dummyTransaksi[index].tanggal = req.body.tanggal;
         dummyTransaksi[index].jenis = req.body.jenis;
         dummyTransaksi[index].nominal = parseInt(req.body.nominal);
         dummyTransaksi[index].keterangan = req.body.keterangan;
         
-        // Ganti foto cuma kalau user upload foto baru
         if (newFoto) {
             dummyTransaksi[index].foto = newFoto;
         }
@@ -131,7 +117,6 @@ router.post('/transaksi/update/:id', cekLogin, upload.single('bukti_foto'), (req
     res.redirect('/');
 });
 
-// Proses Hapus
 router.post('/transaksi/delete/:id', cekLogin, (req, res) => {
     const id = parseInt(req.params.id);
     dummyTransaksi = dummyTransaksi.filter(t => t.id != id);
